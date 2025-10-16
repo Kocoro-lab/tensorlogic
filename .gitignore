@@ -1,0 +1,91 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# PyTorch
+*.pth
+*.pt
+!models/*.pt  # Keep example models
+
+# Environments
+.env
+.venv
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Thumbnails
+Thumbs.db
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+.hypothesis/
+
+# Logs
+*.log
+
+# Temporary files
+*.swp
+*.swo
+*~
+.tmp/
+
+# Claude Code
+.claude/
+
+# Models (except example models)
+models/*.pt
+!models/family_tree.pt
+models/*.json
+!models/family_tree.json
+
+# Visualizations (can regenerate)
+visualizations/*.png
+visualizations/*.jpg
+visualizations/*.pdf
+
+# Documentation builds
+docs/_build/
