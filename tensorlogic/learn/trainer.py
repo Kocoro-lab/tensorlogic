@@ -142,6 +142,10 @@ class Trainer:
                         total_loss += loss
                         num_batches += 1
 
+            # Guard against empty training data
+            if num_batches == 0:
+                continue
+
             avg_loss = total_loss / num_batches
             self.history['loss'].append(avg_loss)
 

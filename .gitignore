@@ -82,10 +82,5 @@ models/*.pt
 models/*.json
 !models/family_tree.json
 
-# Visualizations (can regenerate)
-visualizations/*.png
-visualizations/*.jpg
-visualizations/*.pdf
-
 # Documentation builds
 docs/_build/
