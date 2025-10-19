@@ -310,3 +310,98 @@ class EmbeddingTrainer(Trainer):
                 negatives.append((i, j))
 
         return negatives
+
+
+class PairScoringTrainer:
+    """
+    Generic trainer for pair-scoring models using a provided loss and scorer.
+
+    Suitable for training a multi-hop composer over an EmbeddingSpace by
+    optimizing scores on (subject, object) pairs.
+    """
+
+    def __init__(
+        self,
+        model: nn.Module,
+        optimizer_type: str = 'adam',
+        learning_rate: float = 1e-3,
+        device: str = 'cpu',
+        max_grad_norm: float = 1.0,
+        use_amp: bool = False,
+    ):
+        self.model = model.to(device)
+        self.device = device
+        self.max_grad_norm = max_grad_norm
+        self.use_amp = use_amp
+
+        params = list(model.parameters())
+        if optimizer_type == 'sgd':
+            self.optimizer = optim.SGD(params, lr=learning_rate)
+        elif optimizer_type == 'adam':
+            self.optimizer = optim.Adam(params, lr=learning_rate)
+        elif optimizer_type == 'adamw':
+            self.optimizer = optim.AdamW(params, lr=learning_rate)
+        else:
+            raise ValueError(f"Unknown optimizer: {optimizer_type}")
+        self._scaler = torch.amp.GradScaler(device=device, enabled=use_amp)
+
+    def train_epoch(
+        self,
+        loss_fn: nn.Module,
+        scorer: Callable,
+        batches: List[dict],
+        num_objects: int,
+        verbose: bool = True,
+    ) -> float:
+        """
+        Train for one epoch.
+
+        batches: list of dicts with keys:
+          - 'pos': Tensor[B,2]
+          - optional 'neg': Tensor[B,K,2]
+        """
+        iterator = tqdm(batches) if verbose else batches
+        running = 0.0
+        n = 0
+
+        for batch in iterator:
+            self.optimizer.zero_grad()
+            pos = batch['pos'].to(self.device)
+            neg = batch.get('neg')
+            if neg is not None:
+                neg = neg.to(self.device)
+
+            if self.use_amp:
+                with torch.cuda.amp.autocast():
+                    loss = loss_fn(
+                        self.model,
+                        positive_pairs=pos,
+                        negative_pairs=neg,
+                        scorer=scorer,
+                        num_objects=num_objects,
+                    )
+                self._scaler.scale(loss).backward()
+                if self.max_grad_norm is not None:
+                    self._scaler.unscale_(self.optimizer)
+                    nn.utils.clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
+                self._scaler.step(self.optimizer)
+                self._scaler.update()
+            else:
+                loss = loss_fn(
+                    self.model,
+                    positive_pairs=pos,
+                    negative_pairs=neg,
+                    scorer=scorer,
+                    num_objects=num_objects,
+                )
+                loss.backward()
+                if self.max_grad_norm is not None:
+                    nn.utils.clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
+                self.optimizer.step()
+
+            running += loss.item()
+            n += 1
+            if verbose:
+                iterator.set_postfix({'loss': f'{(running / n):.4f}'})
+
+        return running / max(n, 1)
