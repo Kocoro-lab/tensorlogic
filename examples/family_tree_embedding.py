@@ -176,8 +176,8 @@ def main():
         'relations': ['parent', 'grandparent']
     }
 
-    save_model(embed_space, '../models/family_tree_embedding.pt', metadata=metadata)
-    export_embeddings(embed_space, '../models/family_tree_embedding.json')
+    save_model(embed_space, 'models/family_tree_embedding.pt', metadata=metadata)
+    export_embeddings(embed_space, 'models/family_tree_embedding.json')
     print("✓ Model saved to models/family_tree_embedding.pt")
     print("✓ Embeddings exported to models/family_tree_embedding.json")
 
@@ -191,7 +191,7 @@ def main():
 
         # Plot embedding similarities
         plot_embedding_similarity(
-            embed_space.object_embeddings.weight,
+            embed_space.object_embeddings,
             labels=names,
             save_path=f"{viz_dir}/embeddings_similarity_heatmap.png",
             show=False

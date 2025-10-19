@@ -74,8 +74,8 @@ def main():
         'discovery_method': 'RESCAL tensor factorization'
     }
 
-    save_model(space, '../models/predicate_invention.pt', metadata=metadata)
-    export_embeddings(space, '../models/predicate_invention.json')
+    save_model(space, 'models/predicate_invention.pt', metadata=metadata)
+    export_embeddings(space, 'models/predicate_invention.json')
     print("✓ Model with invented predicates saved to models/predicate_invention.pt")
     print("✓ Embeddings exported to models/predicate_invention.json")
 
@@ -89,7 +89,7 @@ def main():
 
         # Plot embedding similarities
         plot_embedding_similarity(
-            space.object_embeddings.weight,
+            space.object_embeddings,
             save_path=f"{viz_dir}/embeddings_similarity_with_invented.png",
             show=False
         )

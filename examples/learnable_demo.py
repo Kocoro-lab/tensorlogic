@@ -91,11 +91,11 @@ def main():
         'composer_info': 'GatedMultiHopComposer trained to learn grandparent composition'
     }
 
-    save_model(space, '../models/learnable_composer.pt', metadata=metadata)
-    export_embeddings(space, '../models/learnable_composer.json')
+    save_model(space, 'models/learnable_composer.pt', metadata=metadata)
+    export_embeddings(space, 'models/learnable_composer.json')
 
     # Also save the composer weights
-    torch.save(composer.state_dict(), '../models/learnable_composer_weights.pt')
+    torch.save(composer.state_dict(), 'models/learnable_composer_weights.pt')
 
     print("✓ Embedding space saved to models/learnable_composer.pt")
     print("✓ Embeddings exported to models/learnable_composer.json")
@@ -147,7 +147,7 @@ def main():
 
         # Plot embedding similarities
         plot_embedding_similarity(
-            space.object_embeddings.weight,
+            space.object_embeddings,
             save_path=f"{viz_dir}/embeddings_similarity_heatmap.png",
             show=False
         )

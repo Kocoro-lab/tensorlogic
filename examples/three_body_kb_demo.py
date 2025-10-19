@@ -328,13 +328,13 @@ if "工作于" in space.relations and "执行" in space.relations:
 print("\n【步骤7】保存训练好的模型")
 print("-" * 80)
 
-model_path = "../models/three_body_kb.pt"
+model_path = "models/three_body_kb.pt"
 from tensorlogic.utils.io import save_model
 from tensorlogic import export_embeddings
 save_model(space, model_path)
-export_embeddings(space, "../models/three_body_kb.json")
+export_embeddings(space, "models/three_body_kb.json")
 print(f"✓ 模型已保存到: {model_path}")
-print(f"✓ 嵌入向量已导出: ../models/three_body_kb.json")
+print(f"✓ 嵌入向量已导出: models/three_body_kb.json")
 
 import os
 if os.path.exists(model_path):

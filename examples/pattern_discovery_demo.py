@@ -83,11 +83,11 @@ def main():
         'discovery_method': 'Closure-based self-supervision'
     }
 
-    save_model(space, '../models/pattern_discovery.pt', metadata=metadata)
-    export_embeddings(space, '../models/pattern_discovery.json')
+    save_model(space, 'models/pattern_discovery.pt', metadata=metadata)
+    export_embeddings(space, 'models/pattern_discovery.json')
 
     # Also save the composer weights
-    torch.save(composer.state_dict(), '../models/pattern_discovery_composer_weights.pt')
+    torch.save(composer.state_dict(), 'models/pattern_discovery_composer_weights.pt')
 
     print("✓ Embedding space saved to models/pattern_discovery.pt")
     print("✓ Embeddings exported to models/pattern_discovery.json")
@@ -130,7 +130,7 @@ def main():
 
         # Plot embedding similarities
         plot_embedding_similarity(
-            space.object_embeddings.weight,
+            space.object_embeddings,
             save_path=f"{viz_dir}/embeddings_similarity_heatmap.png",
             show=False
         )
