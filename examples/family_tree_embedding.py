@@ -14,6 +14,7 @@ sys.path.append('..')
 import torch
 from tensorlogic.reasoning.embed import EmbeddingSpace
 from tensorlogic.learn.trainer import EmbeddingTrainer
+from tensorlogic import save_model, export_embeddings
 
 
 def main():
@@ -157,6 +158,26 @@ def main():
         for j in range(num_people):
             if all_grandparents[i, j] > 0.5:
                 print(f"  {names[i]} is grandparent of {names[j]}")
+
+    # Save trained model
+    print("\n" + "=" * 70)
+    print("Saving trained model...")
+    print("=" * 70)
+
+    metadata = {
+        'description': 'Family tree embedding model with learned parent relation',
+        'num_entities': num_people,
+        'embedding_dim': embedding_dim,
+        'temperature': temperature,
+        'num_training_examples': len(parent_facts),
+        'training_epochs': 200,
+        'relations': ['parent', 'grandparent']
+    }
+
+    save_model(embed_space, '../models/family_tree_embedding.pt', metadata=metadata)
+    export_embeddings(embed_space, '../models/family_tree_embedding.json')
+    print("✓ Model saved to models/family_tree_embedding.pt")
+    print("✓ Embeddings exported to models/family_tree_embedding.json")
 
     print("\n" + "=" * 70)
     print("Embedding space reasoning complete!")
