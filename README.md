@@ -1,7 +1,7 @@
 # Tensor Logic
 
 Unified neural + symbolic reasoning via tensor equations.
-Based on “Tensor Logic: The Language of AI” (Domingos).
+Based on ["Tensor Logic: The Language of AI"](https://arxiv.org/abs/2510.12269) (Domingos).
 
 Key capabilities
 - Tensor equations as programs (einsum joins + projections) with forward/backward chaining
@@ -102,7 +102,7 @@ python3 examples/benchmark_suite.py
 **Learn:** Compare Boolean, Embedding, Composer, and Composer+Invented on multiple scenarios.
 **Metrics:** AUC, Hits@K, F1, training time, query speed, memory usage.
 
-### Real-World Demo: Knowledge Base from Text
+### Real-World Demo: Knowledge Base from Text (A Chinese Sci-Fi)
 ```bash
 python3 examples/three_body_kb_demo.py
 ```
@@ -198,4 +198,5 @@ How to ask queries
 
 License & citation
 - MIT License (see LICENSE)
+- Paper: https://arxiv.org/abs/2510.12269
 - Please cite the associated paper if you use this repo
