@@ -17,6 +17,8 @@ from tensorlogic.learn.losses import ContrastiveLoss
 from tensorlogic.utils.sparse import adjacency_from_pairs_sparse, sparse_mm_aggregate
 from tensorlogic.learn.trainer import PairScoringTrainer
 from tensorlogic import save_model, export_embeddings
+from tensorlogic.utils.visualization import plot_attention_weights, plot_embedding_similarity, print_attention_summary
+from tensorlogic.utils.viz_helper import ensure_viz_directory, print_viz_summary
 
 
 def main():
@@ -92,6 +94,10 @@ def main():
     print("✓ Composer weights saved to models/pattern_discovery_composer_weights.pt")
 
     # Inspect attention weights on a sample (0 -> 2 should be positive)
+    print("\n" + "=" * 70)
+    print("Analyzing learned patterns...")
+    print("=" * 70)
+
     s = torch.tensor([0])
     o = torch.tensor([2])
     subj_emb = space.object_embeddings[s]
@@ -101,6 +107,43 @@ def main():
     print("Logit:", logits.item())
     for i, w in enumerate(attns, 1):
         print(f"Hop {i} attention over ['parent']:", w.squeeze(0).tolist())
+
+    # Generate visualizations
+    print("\n" + "=" * 70)
+    print("Generating visualizations...")
+    print("=" * 70)
+
+    try:
+        viz_dir = ensure_viz_directory('pattern_discovery')
+
+        # Plot attention weights
+        plot_attention_weights(
+            attns,
+            ['parent'],
+            query_pair=(f'Entity {s.item()}', f'Entity {o.item()}'),
+            save_path=f"{viz_dir}/discovered_pattern_attention.png",
+            show=False
+        )
+
+        # Print attention summary
+        print_attention_summary(attns, ['parent'])
+
+        # Plot embedding similarities
+        plot_embedding_similarity(
+            space.object_embeddings.weight,
+            save_path=f"{viz_dir}/embeddings_similarity_heatmap.png",
+            show=False
+        )
+
+        descriptions = {
+            'discovered_pattern_attention.png': 'Self-supervised discovery of grandparent pattern via closure',
+            'embeddings_similarity_heatmap.png': 'Cosine similarity of discovered entity embeddings',
+        }
+        print_viz_summary('pattern_discovery', descriptions)
+
+    except ImportError:
+        print("⚠️  Matplotlib not available. Skipping visualizations.")
+        print("   Install with: pip install matplotlib")
 
 
 if __name__ == "__main__":

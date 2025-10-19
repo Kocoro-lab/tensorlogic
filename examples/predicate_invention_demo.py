@@ -13,6 +13,8 @@ from tensorlogic.reasoning import (
     invent_and_register_rescal,
 )
 from tensorlogic import save_model, export_embeddings
+from tensorlogic.utils.visualization import plot_embedding_similarity
+from tensorlogic.utils.viz_helper import ensure_viz_directory, print_viz_summary
 
 
 def main():
@@ -76,6 +78,30 @@ def main():
     export_embeddings(space, '../models/predicate_invention.json')
     print("✓ Model with invented predicates saved to models/predicate_invention.pt")
     print("✓ Embeddings exported to models/predicate_invention.json")
+
+    # Generate visualizations
+    print("\n" + "=" * 70)
+    print("Generating visualizations...")
+    print("=" * 70)
+
+    try:
+        viz_dir = ensure_viz_directory('predicate_invention')
+
+        # Plot embedding similarities
+        plot_embedding_similarity(
+            space.object_embeddings.weight,
+            save_path=f"{viz_dir}/embeddings_similarity_with_invented.png",
+            show=False
+        )
+
+        descriptions = {
+            'embeddings_similarity_with_invented.png': 'Entity embeddings learned via RESCAL with invented predicates',
+        }
+        print_viz_summary('predicate_invention', descriptions)
+
+    except ImportError:
+        print("⚠️  Matplotlib not available. Skipping visualizations.")
+        print("   Install with: pip install matplotlib")
 
 
 if __name__ == "__main__":

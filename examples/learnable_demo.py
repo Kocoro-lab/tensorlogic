@@ -17,6 +17,8 @@ from tensorlogic.reasoning.composer import GatedMultiHopComposer
 from tensorlogic.learn.losses import ContrastiveLoss
 from tensorlogic.learn.trainer import EmbeddingTrainer, PairScoringTrainer
 from tensorlogic import save_model, export_embeddings
+from tensorlogic.utils.visualization import plot_attention_weights, plot_embedding_similarity, print_attention_summary
+from tensorlogic.utils.viz_helper import ensure_viz_directory, print_viz_summary
 
 
 def main():
@@ -100,6 +102,10 @@ def main():
     print("✓ Composer weights saved to models/learnable_composer_weights.pt")
 
     # Evaluate
+    print("\n" + "=" * 70)
+    print("Evaluating learned composer...")
+    print("=" * 70)
+
     test_pairs = [
         (0, 2),  # true
         (1, 3),  # true
@@ -111,6 +117,50 @@ def main():
     scores = scorer(composer, subjects, objects)
     for (s, o), sc in zip(test_pairs, scores.tolist()):
         print(f"Score grandparent({s}->{o}) = {sc:.3f}")
+
+    # Generate visualizations
+    print("\n" + "=" * 70)
+    print("Generating visualizations...")
+    print("=" * 70)
+
+    try:
+        viz_dir = ensure_viz_directory('learnable_composer')
+
+        # Plot attention weights for a sample query
+        s_idx = torch.tensor([0])
+        o_idx = torch.tensor([2])
+        subj_emb = space.object_embeddings[s_idx]
+        obj_emb = space.object_embeddings[o_idx]
+        bank = space.relation_bank_tensor(order=['parent'])
+        logits, attns = composer.forward_with_attn(subj_emb, obj_emb, bank)
+
+        plot_attention_weights(
+            attns,
+            ['parent'],
+            query_pair=(f'Entity {s_idx.item()}', f'Entity {o_idx.item()}'),
+            save_path=f"{viz_dir}/attention_weights_query.png",
+            show=False
+        )
+
+        # Print attention summary
+        print_attention_summary(attns, ['parent'])
+
+        # Plot embedding similarities
+        plot_embedding_similarity(
+            space.object_embeddings.weight,
+            save_path=f"{viz_dir}/embeddings_similarity_heatmap.png",
+            show=False
+        )
+
+        descriptions = {
+            'attention_weights_query.png': 'Learned attention weights across hops for (0→2) query',
+            'embeddings_similarity_heatmap.png': 'Cosine similarity of learned entity embeddings',
+        }
+        print_viz_summary('learnable_composer', descriptions)
+
+    except ImportError:
+        print("⚠️  Matplotlib not available. Skipping visualizations.")
+        print("   Install with: pip install matplotlib")
 
 
 if __name__ == "__main__":

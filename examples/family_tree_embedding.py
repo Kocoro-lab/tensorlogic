@@ -15,6 +15,8 @@ import torch
 from tensorlogic.reasoning.embed import EmbeddingSpace
 from tensorlogic.learn.trainer import EmbeddingTrainer
 from tensorlogic import save_model, export_embeddings
+from tensorlogic.utils.visualization import plot_embedding_similarity, plot_relation_composition
+from tensorlogic.utils.viz_helper import ensure_viz_directory, print_viz_summary
 
 
 def main():
@@ -178,6 +180,43 @@ def main():
     export_embeddings(embed_space, '../models/family_tree_embedding.json')
     print("✓ Model saved to models/family_tree_embedding.pt")
     print("✓ Embeddings exported to models/family_tree_embedding.json")
+
+    # Generate visualizations
+    print("\n" + "=" * 70)
+    print("Generating visualizations...")
+    print("=" * 70)
+
+    try:
+        viz_dir = ensure_viz_directory('family_tree_embedding')
+
+        # Plot embedding similarities
+        plot_embedding_similarity(
+            embed_space.object_embeddings.weight,
+            labels=names,
+            save_path=f"{viz_dir}/embeddings_similarity_heatmap.png",
+            show=False
+        )
+
+        # Plot parent relation
+        plot_relation_composition(
+            embed_space,
+            'parent',
+            'parent',
+            labels=names,
+            save_path=f"{viz_dir}/parent_relation_heatmap.png",
+            show=False
+        )
+
+        # Print visualization summary
+        descriptions = {
+            'embeddings_similarity_heatmap.png': 'Cosine similarity of learned object embeddings',
+            'parent_relation_heatmap.png': 'Parent relation matrix showing learned patterns',
+        }
+        print_viz_summary('family_tree_embedding', descriptions)
+
+    except ImportError:
+        print("⚠️  Matplotlib not available. Skipping visualizations.")
+        print("   Install with: pip install matplotlib")
 
     print("\n" + "=" * 70)
     print("Embedding space reasoning complete!")
