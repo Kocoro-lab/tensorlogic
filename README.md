@@ -10,63 +10,101 @@ Key capabilities
 - Automatic predicate invention via RESCAL (no labels, no manual patterns)
 - Sparse facts, AMP, batching, and a simple benchmark suite
 
-Requirements
+## Requirements
 - Python 3.8+, PyTorch 2.0+, NumPy
 
-Install
+## Installation
+
+### Option 1: Development Installation (Recommended for Contributors)
 ```bash
+# Clone the repository
+git clone https://github.com/Kocoro-lab/tensorlogic.git
+cd tensorlogic
+
+# Install in editable mode (changes to code are immediately reflected)
+pip install -e .
+```
+
+Then use in any Python project:
+```python
+import tensorlogic
+from tensorlogic.reasoning.embed import EmbeddingSpace
+```
+
+### Option 2: Direct GitHub Installation
+```bash
+pip install git+https://github.com/Kocoro-lab/tensorlogic.git
+```
+
+### Option 3: Manual Dependency Installation
+```bash
+git clone https://github.com/Kocoro-lab/tensorlogic.git
+cd tensorlogic
 pip install -r requirements.txt
+```
+
+Then set `PYTHONPATH` when running examples:
+```bash
+PYTHONPATH=. python3 examples/family_tree_symbolic.py
 ```
 
 ## Quick Start Examples
 
-Run any example with `PYTHONPATH=. python3 examples/<name>.py`
+After installation with `pip install -e .`, run examples directly:
+```bash
+python3 examples/family_tree_symbolic.py
+```
+
+Or if using manual dependency installation, set `PYTHONPATH`:
+```bash
+PYTHONPATH=. python3 examples/<name>.py
+```
 
 ### Foundation: Boolean Reasoning
 ```bash
-PYTHONPATH=. python3 examples/family_tree_symbolic.py
+python3 examples/family_tree_symbolic.py
 ```
 **Learn:** Forward chaining, Boolean logic, guaranteed correctness. No training required.
 **Use case:** Rules, audits, symbolic deduction (grandparent = parent ∘ parent).
 
 ### Foundation: Embedding Learning
 ```bash
-PYTHONPATH=. python3 examples/family_tree_embedding.py
+python3 examples/family_tree_embedding.py
 ```
 **Learn:** Train embeddings from data, learn relation matrices, compose relations.
 **Use case:** Fast learning from positive/negative pairs, analogical reasoning via similarity.
 
 ### Advanced: Learnable Composition
 ```bash
-PYTHONPATH=. python3 examples/learnable_demo.py
+python3 examples/learnable_demo.py
 ```
 **Learn:** GatedMultiHopComposer learns multi-hop paths from examples.
 **Use case:** Predict compositions from a few supervised examples (e.g., grandparent from parent pairs).
 
 ### Advanced: Pattern Discovery (Self-Supervised)
 ```bash
-PYTHONPATH=. python3 examples/pattern_discovery_demo.py
+python3 examples/pattern_discovery_demo.py
 ```
 **Learn:** Closure-based discovery—infer patterns like "sister" from "parent" facts.
 **Use case:** Find implicit relations without labels or manual enumeration.
 
 ### Advanced: Predicate Invention (RESCAL)
 ```bash
-PYTHONPATH=. python3 examples/predicate_invention_demo.py
+python3 examples/predicate_invention_demo.py
 ```
 **Learn:** Automatically invent hidden predicates via RESCAL tensor factorization.
 **Use case:** Discover latent structure and missing relations in knowledge bases.
 
 ### Benchmarks & Comparison
 ```bash
-PYTHONPATH=. python3 examples/benchmark_suite.py
+python3 examples/benchmark_suite.py
 ```
 **Learn:** Compare Boolean, Embedding, Composer, and Composer+Invented on multiple scenarios.
 **Metrics:** AUC, Hits@K, F1, training time, query speed, memory usage.
 
 ### Real-World Demo: Knowledge Base from Text
 ```bash
-PYTHONPATH=. python3 examples/three_body_kb_demo.py
+python3 examples/three_body_kb_demo.py
 ```
 **Learn:** Extract entities/relations from text, train a KB, perform multi-hop queries.
 **Use case:** End-to-end pipeline: text → structured KB → reasoning.
@@ -133,9 +171,9 @@ tensorlogic/
 examples/       # Boolean / Embedding / Composer / Invention / Benchmarks
 ```
 
-Benchmarks
+## Benchmarks
 ```bash
-PYTHONPATH=. python3 examples/benchmark_suite.py
+python3 examples/benchmark_suite.py
 ```
 Reports: Speed (train/query time, pairs/s), Memory (MB), Quality (AUC/Hits@K/F1) on family, small‑KG, synthetic scenarios.
 

@@ -88,6 +88,19 @@ class EmbeddingSpace(nn.Module):
 
         self.relations[name] = nn.Parameter(matrix)
 
+    def relation_bank_tensor(self, order: Optional[list] = None) -> torch.Tensor:
+        """
+        Stack relation matrices into a [R, D, D] tensor for composers.
+
+        Args:
+            order: Optional list of relation names to control stacking order.
+        """
+        keys = order if order is not None else sorted(list(self.relations.keys()))
+        if not keys:
+            raise ValueError("No relations available to form a relation bank")
+        mats = [self.relations[k] for k in keys]
+        return torch.stack(mats, dim=0)
+
     def embed_relation_from_facts(
         self,
         name: str,
@@ -177,6 +190,59 @@ class EmbeddingSpace(nn.Module):
         # Apply sigmoid and threshold
         probs = torch.sigmoid(scores / self.temperature)
         return (probs > threshold).float()
+
+    def score_with_composer(
+        self,
+        composer: nn.Module,
+        subjects: torch.Tensor,
+        objects: torch.Tensor,
+        relation_order: Optional[list] = None,
+        use_sigmoid: bool = True,
+    ) -> torch.Tensor:
+        """
+        Score (subject, object) pairs via a multi-hop composer over this
+        embedding space's relation bank.
+
+        Args:
+            composer: A module like GatedMultiHopComposer
+            subjects: [batch] subject indices
+            objects: [batch] object indices
+            relation_order: Optional list of relation names to include/order
+            use_sigmoid: Apply sigmoid with this space's temperature
+        Returns:
+            [batch] scores/probabilities
+        """
+        subj_emb = self.object_embeddings[subjects]
+        obj_emb = self.object_embeddings[objects]
+        bank = self.relation_bank_tensor(order=relation_order)
+
+        logits = composer(subj_emb, obj_emb, bank)
+        if use_sigmoid:
+            return torch.sigmoid(logits / self.temperature)
+        return logits
+
+    def score_with_composer_batched(
+        self,
+        composer: nn.Module,
+        subjects: torch.Tensor,
+        objects: torch.Tensor,
+        relation_order: Optional[list] = None,
+        use_sigmoid: bool = True,
+        batch_size: int = 65536,
+    ) -> torch.Tensor:
+        """
+        Chunked version of score_with_composer to avoid OOM on large pair lists.
+        """
+        assert subjects.shape == objects.shape
+        N = subjects.shape[0]
+        outputs = []
+        for i in range(0, N, batch_size):
+            sub = subjects[i:i+batch_size]
+            obj = objects[i:i+batch_size]
+            outputs.append(self.score_with_composer(
+                composer, sub, obj, relation_order=relation_order, use_sigmoid=use_sigmoid
+            ))
+        return torch.cat(outputs, dim=0)
 
     def apply_rule(
         self,
