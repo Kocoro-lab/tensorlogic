@@ -10,6 +10,21 @@ from .core.tensor import TensorWrapper
 from .reasoning.embed import EmbeddingSpace
 from .reasoning.composer import GatedMultiHopComposer, stack_relation_bank
 from .learn.trainer import Trainer
+from .transformers import (
+    MultiHeadAttention,
+    SinusoidalPositionalEncoding,
+    LearnedPositionalEncoding,
+    FeedForward,
+    TransformerEncoderLayer,
+    TransformerEncoder,
+    TransformerDecoderLayer,
+    TransformerDecoder,
+    Transformer,
+    DecoderOnlyLM,
+    attention_scores,
+    attention_weights,
+    apply_attention,
+)
 from .utils.io import save_model, load_model, save_checkpoint, load_checkpoint, export_embeddings
 
 __version__ = "0.1.0"
@@ -25,4 +40,17 @@ __all__ = [
     "export_embeddings",
     "GatedMultiHopComposer",
     "stack_relation_bank",
+    "MultiHeadAttention",
+    "SinusoidalPositionalEncoding",
+    "LearnedPositionalEncoding",
+    "FeedForward",
+    "TransformerEncoderLayer",
+    "TransformerEncoder",
+    "TransformerDecoderLayer",
+    "TransformerDecoder",
+    "Transformer",
+    "DecoderOnlyLM",
+    "attention_scores",
+    "attention_weights",
+    "apply_attention",
 ]

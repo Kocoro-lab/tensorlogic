@@ -23,6 +23,11 @@ python3 examples/pattern_discovery_demo.py        # Self-supervised pattern disc
 python3 examples/predicate_invention_demo.py      # RESCAL predicate invention
 python3 examples/benchmark_suite.py               # Performance benchmarks
 python3 examples/three_body_kb_demo.py            # Real-world knowledge base from text
+python3 examples/transformer_reasoning_demo.py    # Transformers + KG constraints + relation discovery
+python3 examples/rnn_sequence_reasoning_demo.py   # RNN/LSTM/GRU temporal reasoning + symbolic masks
+# Shakespeare character-level language model (nanoGPT-like):
+PYTHONPATH=. python3 examples/shakespeare/train_shakespeare.py             # Train on input.txt
+PYTHONPATH=. python3 examples/shakespeare/generate_shakespeare.py --checkpoint checkpoints/shakespeare/best.pt
 ```
 
 Or with manual install, set `PYTHONPATH`:
@@ -77,6 +82,32 @@ Tensorlogic implements a dual‑mode tensor‑based reasoning framework that uni
 - **Sparse Utils** (`sparse.py`): Efficient handling of sparse fact tensors (memory-optimized)
 - **I/O** (`io.py`): Save/load models preserving both symbolic structure and learned parameters
 
+**Transformers & Recurrent Layer** (`tensorlogic/transformers/`)
+- Attention as tensor equations (`tensor_equations.py`):
+  - Scores: `einsum('bhid,bhjd->bhij', Q, K) / sqrt(d)`
+  - Weights: softmax (continuous) or argmax one-hot (boolean); masking supported
+  - Apply: `einsum('bhij,bhjd->bhid', A, V)`
+- Components:
+  - `MultiHeadAttention` (scaled dot-product), boolean/continuous modes
+  - Positional encodings: `SinusoidalPositionalEncoding`, `LearnedPositionalEncoding`
+  - Encoder/Decoder/Full Transformer in `layers.py`
+  - `DecoderOnlyLM` (GPT-like) in `lm.py` with tied embeddings and generation
+  - Recurrent modules in `recurrent.py`: `SimpleRNN`, `LSTM`, `GRU`, `BidirectionalWrapper`
+  - Utilities: `utils.causal_mask(L)` for autoregressive masking
+
+Export tensor equations (for transparency and audit):
+```python
+from tensorlogic.transformers import Transformer, export_rnn_as_equations
+
+eqs = Transformer().to_tensor_equations()
+print('\n'.join(eqs))
+
+# For RNNs
+from tensorlogic.transformers import LSTM
+lstm = LSTM(input_size=128, hidden_size=256)
+print('\n'.join(export_rnn_as_equations(lstm)))
+```
+
 ### Data Flow Example: From Input to Reasoning
 
 1. User creates a `TensorProgram` and adds tensors (facts as Boolean or continuous tensors) and equations (symbolic rules)
@@ -102,11 +133,11 @@ from tensorlogic.core.program import TensorProgram
 
 # Boolean mode (strict logic)
 prog = TensorProgram(mode='boolean', cuda=False)
-prog.add_tensor("parent", torch.tensor([[1, 0], [0, 1]], dtype=torch.int8))
+prog.add_tensor("parent", data=torch.tensor([[1, 0], [0, 1]], dtype=torch.int8))
 
 # Continuous mode (learnable)
 prog = TensorProgram(mode='continuous', cuda=True)
-prog.add_tensor("similarity", torch.randn(10, 10, requires_grad=True))
+prog.add_tensor("similarity", data=torch.randn(10, 10, requires_grad=True))
 ```
 
 ### Working with EmbeddingSpace
@@ -177,6 +208,11 @@ load_model(program, "program_params.pt")
 - Multi-hop path prediction over a learned relation matrix bank
 - Use `GatedMultiHopComposer` trained on supervised examples
 
+**Sequence Modeling (Neural Text/Time Series)** → Decoder-only Transformer or RNNs
+- Next-token prediction with `DecoderOnlyLM` (GPT-like). Suited for demos (Tiny Shakespeare) and research; for large-scale use, add KV cache/AMP/DDP.
+- Temporal embeddings with `SimpleRNN`/`LSTM`/`GRU`; combine with symbolic masks from `TensorProgram` for constrained prediction.
+- Knowledge-graph-aware attention: mask attention with program facts for structure-aware sequence modeling.
+
 **Predicate Invention** → Automatically discover hidden structure, no labels needed
 - Knowledge graph refinement and latent relation discovery
 - Self-supervised learning of implicit predicates
@@ -202,6 +238,15 @@ load_model(program, "program_params.pt")
 6. **Probability interpretation in continuous mode**: Some ops (e.g., joins, projections) return unnormalized real values and can exceed 1.
    - Fix: Apply nonlinearities (e.g., sigmoid/softmax) or thresholds where a probabilistic interpretation is required
 
+7. **Attention mask shapes/broadcasting**: Masks must be broadcastable to `[B, H, Lq, Lk]`.
+   - Fix: Provide `[B, Lq, Lk]` or `[Lq, Lk]`; `MultiHeadAttention` will expand to heads. Use `utils.causal_mask(L)` for `[1, L, L]`.
+
+8. **Attention weights not returned**: By default components may return only outputs.
+   - Fix: Pass `need_weights=True` to `MultiHeadAttention` or `return_attention=True` to encoder/decoder stacks.
+
+9. **Decoder-only LM generation speed**: `generate()` is O(T^2) without KV cache.
+   - Fix: For longer generations, implement KV cache or reduce context; top-k sampling is supported.
+
 ## Paper Reference
 
 Implementation based on: ["Tensor Logic: The Language of AI"](https://arxiv.org/abs/2510.12269) (Domingos)
@@ -219,6 +264,9 @@ Strengths
 - Diagnostics and visualization helpers included
 - Examples cover symbolic, embeddings, composition, invention, and benchmarking
 - Benchmarking suite provided for quick comparisons
+ - Transformers: encoder, decoder, and full architecture with explicit tensor equations
+ - Decoder-only LM (GPT-like) with tied embeddings and generation
+ - Recurrent modules: SimpleRNN/LSTM/GRU with tensor-equation cells and boolean mode
 
 Gaps
 - Advanced tensor decompositions (e.g., Tucker, CP) not implemented
@@ -231,3 +279,4 @@ Gaps
 - TensorProgram save/load does not serialize constants/equations (manual rebuild required)
 - TensorWrapper is not used pervasively as a language-level carrier
 - Embeddings/composers not integrated as first-class language constructs
+ - LM performance optimizations (KV cache, FlashAttention, AMP, DDP) are not included by default

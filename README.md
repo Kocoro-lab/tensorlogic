@@ -109,6 +109,52 @@ python3 examples/three_body_kb_demo.py
 **Learn:** Extract entities/relations from text, train a KB, perform multi-hop queries.
 **Use case:** End-to-end pipeline: text → structured KB → reasoning.
 
+### Transformer & RNN
+
+TensorLogic now includes full **Transformer** and **RNN/LSTM/GRU** implementations, all expressed as tensor equations!
+
+```bash
+# Transformer with knowledge graph constraints
+python3 examples/transformer_reasoning_demo.py
+
+# RNN/LSTM temporal reasoning with symbolic masks
+python3 examples/rnn_sequence_reasoning_demo.py
+
+# Hybrid reasoning: symbolic logic + neural attention
+python3 examples/hybrid_reasoning_transformer.py
+
+# Shakespeare language model (nanoGPT-like, ~1.5 val loss)
+PYTHONPATH=. python3 examples/shakespeare/train_shakespeare.py  # Train
+PYTHONPATH=. python3 examples/shakespeare/generate_shakespeare.py --checkpoint checkpoints/shakespeare/best.pt
+```
+
+**Features:**
+- **Multi-head attention** as tensor equations: `Q×K^T/√d → softmax → ×V`
+- **Transformers**: Full encoder-decoder architecture with cross-attention
+- **Decoder-only LM**: GPT-style autoregressive models with generation
+- **RNN/LSTM/GRU**: Temporal reasoning with tensor equation cells
+- **Boolean mode**: Hard attention for interpretable reasoning
+- **Symbolic constraints**: Use knowledge graphs to mask attention
+- **Export to equations**: See any model as pure tensor equations
+
+```python
+from tensorlogic.transformers import Transformer, LSTM, DecoderOnlyLM
+
+# Build a transformer
+transformer = Transformer(d_model=512, nhead=8, num_encoder_layers=6)
+
+# Export as tensor equations
+equations = transformer.to_tensor_equations()
+print('\n'.join(equations))  # See the math!
+
+# RNN with boolean mode (discrete states)
+lstm = LSTM(input_size=128, hidden_size=256, mode='boolean')
+
+# Decoder-only language model
+lm = DecoderOnlyLM(vocab_size=50304, d_model=768, n_layer=12)
+generated = lm.generate(prompt, max_new_tokens=100)
+```
+
 ## When to Use Which Approach
 
 | Approach | When to Use | Example |
@@ -117,6 +163,9 @@ python3 examples/three_body_kb_demo.py
 | **Embedding** | Known relations to learn, fast training, few labels | Knowledge base completion, similarity search |
 | **Composer** | Learning multi-hop paths from examples | Predict "grandparent" from "parent" facts, relation composition |
 | **Composer + Invented** | Fully automatic—discover structure, no labels | Knowledge graph refinement, find hidden relations |
+| **Transformer** | Sequence modeling, attention patterns, language tasks | Text generation, seq2seq, attention as relation discovery |
+| **RNN/LSTM** | Temporal sequences, state machines, time series | Sequential reasoning, temporal embeddings, constrained generation |
+| **Hybrid** | Neural + symbolic, constrained generation | Knowledge-aware language models, attention with logical masks |
 
 **Quick decision tree:**
 1. Only logic rules? → Boolean mode
@@ -190,11 +239,11 @@ How to ask queries
 - Non‑goals: open‑ended web search or free‑form QA; this is a learnable relation/path scorer over a known KB.
 
 **Not Yet Implemented**
-- Ready‑made modules for other paradigms (Transformers/CNN/RNN/kernel machines/PGMs). Current focus is symbolic reasoning, embedding‑space reasoning, multi‑hop composition, and RESCAL‑style decomposition.
-- Typed embedding spaces with rectangular relation matrices across types. Use a single entity table and filter candidates by type externally for now.
-- First‑class integration of embedding/composer as language‑layer operators. Today these are parallel modules rather than ops inside `TensorProgram`.
-- General backward‑chaining Datalog solver and large‑scale structure learning. Provided are forward chaining and RESCAL‑based predicate invention.
-- Advanced large‑scale tensor decompositions (e.g., Tucker/CP) and optimized sparse GPU backends.
+- CNNs, kernel machines, and probabilistic graphical models (PGMs) as tensor equations
+- Typed embedding spaces with rectangular relation matrices across entity types
+- First‑class integration of embeddings/composers as `TensorProgram` operators
+- General Datalog solver with full backward‑chaining and abductive reasoning
+- Advanced tensor decompositions (Tucker/CP) and optimized sparse GPU kernels
 
 License & citation
 - MIT License (see LICENSE)

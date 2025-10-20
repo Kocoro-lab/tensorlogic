@@ -41,6 +41,7 @@ venv.bak/
 
 # PyTorch
 *.pth
+*.pt
 
 # Model files (generated, except example models)
 models/*.pt
@@ -91,3 +92,6 @@ docs/_build/
 visualizations/**/*.png
 !visualizations/.gitkeep
 visualizations/**/.gitkeep
+
+# Input files
+input.txt
