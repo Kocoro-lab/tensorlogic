@@ -126,6 +126,9 @@ python3 examples/hybrid_reasoning_transformer.py
 # Shakespeare language model (nanoGPT-like, ~1.5 val loss)
 PYTHONPATH=. python3 examples/shakespeare/train_shakespeare.py  # Train
 PYTHONPATH=. python3 examples/shakespeare/generate_shakespeare.py --checkpoint checkpoints/shakespeare/best.pt
+
+# TensorLogic unique features with Shakespeare - see what makes it special
+PYTHONPATH=. python3 examples/shakespeare/generate_tensorlogic_shakespeare.py
 ```
 
 **Features:**
