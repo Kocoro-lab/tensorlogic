@@ -103,11 +103,14 @@ class DecoderOnlyLM(nn.Module):
     ) -> torch.Tensor:
         """
         Greedy/top-k sampling without KV cache (O(T^2) per step).
+        Uses sliding window to handle sequences longer than max_seq_len.
         """
         device = input_ids.device
         out = input_ids
         for _ in range(max_new_tokens):
-            logits = self.forward(out)  # [B, L, V]
+            # Crop context if it exceeds max_seq_len (sliding window)
+            context = out if out.size(1) <= self.max_seq_len else out[:, -self.max_seq_len:]
+            logits = self.forward(context)  # [B, L, V]
             logits = logits[:, -1, :] / max(temperature, 1e-6)
 
             if top_k is not None and top_k > 0:

@@ -15,7 +15,7 @@ PYTHONPATH=. python3 examples/shakespeare/train_shakespeare.py --max_iters 50
 PYTHONPATH=. python3 examples/shakespeare/train_shakespeare.py --max_iters 5000
 
 # Generate text from trained model
-PYTHONPATH=. python3 examples/shakespeare/generate_shakespeare.py checkpoints/shakespeare/best.pt
+PYTHONPATH=. python3 examples/shakespeare/generate_shakespeare.py --checkpoint checkpoints/shakespeare/best.pt
 ```
 
 ## Features
