@@ -1,0 +1,3 @@
+# This file ensures the checkpoints/shakespeare directory is tracked by git
+# Model checkpoint files (*.pt) are ignored via .gitignore
+# After training, model files will be saved here

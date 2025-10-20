@@ -1,0 +1,9 @@
+# Ignore all model checkpoint files
+*.pt
+*.pth
+*.ckpt
+*.pkl
+*.safetensors
+
+# But keep the directory structure
+!.gitignore
