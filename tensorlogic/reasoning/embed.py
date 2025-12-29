@@ -42,7 +42,7 @@ class EmbeddingSpace(nn.Module):
 
         # Object embeddings: [num_objects, embedding_dim]
         # Initialize as random unit vectors (normalized)
-        embeddings = torch.randn(num_objects, embedding_dim)
+        embeddings = torch.randn(num_objects, embedding_dim, device=device)
         embeddings = F.normalize(embeddings, p=2, dim=1)
         self.object_embeddings = nn.Parameter(embeddings)
 
@@ -67,6 +67,7 @@ class EmbeddingSpace(nn.Module):
 
         if embedding is not None:
             with torch.no_grad():
+                embedding = embedding.to(device=self.object_embeddings.device, dtype=self.object_embeddings.dtype)
                 self.object_embeddings[index] = F.normalize(embedding, p=2, dim=0)
 
     def add_relation(self, name: str, init: str = 'identity'):
@@ -77,12 +78,15 @@ class EmbeddingSpace(nn.Module):
             name: Relation name
             init: Initialization: 'identity', 'random', 'zeros'
         """
+        device = self.object_embeddings.device
+        dtype = self.object_embeddings.dtype
+
         if init == 'identity':
-            matrix = torch.eye(self.embedding_dim)
+            matrix = torch.eye(self.embedding_dim, device=device, dtype=dtype)
         elif init == 'random':
-            matrix = torch.randn(self.embedding_dim, self.embedding_dim) * 0.1
+            matrix = torch.randn(self.embedding_dim, self.embedding_dim, device=device, dtype=dtype) * 0.1
         elif init == 'zeros':
-            matrix = torch.zeros(self.embedding_dim, self.embedding_dim)
+            matrix = torch.zeros(self.embedding_dim, self.embedding_dim, device=device, dtype=dtype)
         else:
             raise ValueError(f"Unknown init: {init}")
 
@@ -115,18 +119,23 @@ class EmbeddingSpace(nn.Module):
             name: Relation name
             fact_pairs: List of (subject_idx, object_idx) pairs that are true
         """
+        device = self.object_embeddings.device
+        dtype = self.object_embeddings.dtype
+
         # Initialize relation matrix
         relation_matrix = torch.zeros(
             self.embedding_dim, self.embedding_dim,
-            device=self.device
+            device=device,
+            dtype=dtype,
         )
 
         # Superpose outer products
-        for i, j in fact_pairs:
-            emb_i = self.object_embeddings[i]  # [dim]
-            emb_j = self.object_embeddings[j]  # [dim]
-            outer = torch.outer(emb_i, emb_j)  # [dim, dim]
-            relation_matrix += outer
+        with torch.no_grad():
+            for i, j in fact_pairs:
+                emb_i = self.object_embeddings[i]  # [dim]
+                emb_j = self.object_embeddings[j]  # [dim]
+                outer = torch.outer(emb_i, emb_j)  # [dim, dim]
+                relation_matrix += outer
 
         self.relations[name] = nn.Parameter(relation_matrix)
 

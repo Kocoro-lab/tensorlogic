@@ -95,3 +95,4 @@ visualizations/**/.gitkeep
 
 # Input files
 input.txt
+.todos/

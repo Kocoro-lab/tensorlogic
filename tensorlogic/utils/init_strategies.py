@@ -7,11 +7,11 @@ Best practices encapsulated for optimal training convergence
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional, Literal
+from typing import Optional, Literal, Union
 
 
 def init_embeddings(
-    embeddings: nn.Embedding,
+    embeddings: Union[nn.Embedding, nn.Parameter, torch.Tensor],
     strategy: Literal['normalized_random', 'xavier', 'orthogonal', 'uniform'] = 'normalized_random',
     scale: float = 1.0
 ):
@@ -19,7 +19,7 @@ def init_embeddings(
     Initialize embeddings with best practices
 
     Args:
-        embeddings: nn.Embedding module to initialize
+        embeddings: Embedding weights to initialize (nn.Embedding, nn.Parameter, or tensor)
         strategy: Initialization strategy
             - 'normalized_random': Random unit vectors (RECOMMENDED)
             - 'xavier': Xavier/Glorot initialization
@@ -34,21 +34,23 @@ def init_embeddings(
         - uniform: Simple uniform distribution
     """
     with torch.no_grad():
+        weight = embeddings.weight if isinstance(embeddings, nn.Embedding) else embeddings
+        if not isinstance(weight, torch.Tensor):
+            raise TypeError(f"Unsupported embeddings type: {type(embeddings)}")
+
         if strategy == 'normalized_random':
             # Random then normalize to unit vectors
-            nn.init.normal_(embeddings.weight, mean=0, std=scale)
-            embeddings.weight.data = F.normalize(
-                embeddings.weight.data, p=2, dim=1
-            )
+            nn.init.normal_(weight, mean=0, std=scale)
+            weight.copy_(F.normalize(weight, p=2, dim=1))
 
         elif strategy == 'xavier':
-            nn.init.xavier_uniform_(embeddings.weight, gain=scale)
+            nn.init.xavier_uniform_(weight, gain=scale)
 
         elif strategy == 'orthogonal':
-            nn.init.orthogonal_(embeddings.weight, gain=scale)
+            nn.init.orthogonal_(weight, gain=scale)
 
         elif strategy == 'uniform':
-            nn.init.uniform_(embeddings.weight, -scale, scale)
+            nn.init.uniform_(weight, -scale, scale)
 
         else:
             raise ValueError(f"Unknown strategy: {strategy}")

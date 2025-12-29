@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 
 import torch
 import torch.nn as nn
@@ -127,7 +127,7 @@ class DecoderOnlyLM(nn.Module):
                     break
         return out
 
-    def to_tensor_equations(self) -> list[str]:
+    def to_tensor_equations(self) -> List[str]:
         """
         Export decoder-only LM as tensor equations.
 
@@ -193,4 +193,3 @@ class DecoderOnlyLM(nn.Module):
         eqs.append("# Append to sequence and repeat")
 
         return eqs
-

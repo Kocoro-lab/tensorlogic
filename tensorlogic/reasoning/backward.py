@@ -39,6 +39,9 @@ def backward_chain(
             return result[tuple(query_indices)]
         return result
 
+    if max_depth < 0:
+        raise ValueError(f"Max depth exceeded while trying to derive goal '{goal}'")
+
     # Check if goal can be computed from equations
     if goal in program.equations:
         # Get dependencies

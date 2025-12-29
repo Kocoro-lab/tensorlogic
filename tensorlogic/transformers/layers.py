@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 
 import torch
 import torch.nn as nn
@@ -388,7 +388,7 @@ class Transformer(nn.Module):
         """Just run the decoder."""
         return self.decoder(tgt, memory, tgt_mask, memory_mask)
 
-    def to_tensor_equations(self) -> list[str]:
+    def to_tensor_equations(self) -> List[str]:
         """Export high-level tensor equations for the Transformer.
 
         This provides a readable, symbolic description of the attention and FFN

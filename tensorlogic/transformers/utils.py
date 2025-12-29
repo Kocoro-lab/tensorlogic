@@ -1,7 +1,9 @@
+from typing import Optional
+
 import torch
 
 
-def causal_mask(size: int, device: torch.device | None = None) -> torch.Tensor:
+def causal_mask(size: int, device: Optional[torch.device] = None) -> torch.Tensor:
     """
     Create a causal mask for self-attention.
     Returns a mask where True means "mask out" (set to -inf).
@@ -17,4 +19,3 @@ def causal_mask(size: int, device: torch.device | None = None) -> torch.Tensor:
     # Transpose to get the right shape: we want mask[i,j] = (j > i)
     mask = mask.T
     return mask.unsqueeze(0)
-
