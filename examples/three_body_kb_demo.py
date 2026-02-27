@@ -27,6 +27,7 @@ Results:
 import sys
 import torch
 import numpy as np
+from pathlib import Path
 from tensorlogic.reasoning.embed import EmbeddingSpace
 from tensorlogic.learn.trainer import EmbeddingTrainer
 
@@ -42,7 +43,12 @@ print("=" * 80)
 print("\n【步骤1】读取文本文件并提取实体关系")
 print("-" * 80)
 
-text_file = "/Users/wayland/Code_Education/Learn_Transformers/three_body_utf8.txt"
+base_dir = Path(__file__).resolve().parent
+default_candidates = [
+    base_dir / "three_body_utf8.txt",
+    base_dir.parent / "three_body_utf8.txt",
+]
+text_file = next((p for p in default_candidates if p.exists()), default_candidates[0])
 
 # 读取前1000行用于演示
 try:

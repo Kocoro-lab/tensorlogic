@@ -237,7 +237,9 @@ def diagnose_training_stuck(loss_history: List[float], window: int = 10) -> Dict
         }
 
     # Check if stuck (no improvement)
-    improvement = (recent[0] - recent[-1]) / (recent[0] + 1e-10)
+    start = float(recent[0])
+    end = float(recent[-1])
+    improvement = (start - end) / (abs(start) + 1e-10)
 
     if improvement < 0.001:  # Less than 0.1% improvement
         return {
@@ -252,7 +254,7 @@ def diagnose_training_stuck(loss_history: List[float], window: int = 10) -> Dict
         }
 
     # Check if increasing (diverging)
-    if recent[-1] > recent[0] * 1.5:
+    if (end - start) > (abs(start) * 0.5 + 1e-10):
         return {
             'status': 'increasing',
             'message': 'Loss is increasing',

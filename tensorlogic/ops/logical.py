@@ -6,7 +6,7 @@ Implements join, project, and other logical operations using Einstein summation.
 
 import torch
 import torch.nn.functional as F
-from typing import Optional
+from typing import List, Optional, Union
 
 
 def logical_join(
@@ -123,7 +123,7 @@ def logical_negation(
         mode: 'boolean' or 'continuous'
     """
     if mode == 'boolean':
-        result = 1.0 - tensor
+        result = (tensor < 0.5).float()
     else:
         # Probabilistic NOT: P(not A) = 1 - P(A)
         result = 1.0 - tensor
@@ -133,14 +133,19 @@ def logical_negation(
 
 def forward_chain_step(
     antecedent_tensors: list,
-    equation: str
+    equation: Union[str, List[str]],
 ) -> torch.Tensor:
     """
     Single step of forward chaining: apply a rule
 
     Args:
         antecedent_tensors: List of tensors for rule antecedents
-        equation: Einstein equation for joining antecedents
+        equation: Einstein equation(s) for joining antecedents.
+            For 1-2 antecedents, a single equation string.
+            For >2 antecedents, a list of equations (one per pairwise step),
+            e.g. ['ij,jk->ik', 'ik,kl->il'] for 3 antecedents.
+            A single string is also accepted for >2 antecedents and will be
+            reused for each step (only correct when shapes are compatible).
 
     Returns:
         Consequent tensor
@@ -148,12 +153,24 @@ def forward_chain_step(
     if len(antecedent_tensors) == 1:
         return antecedent_tensors[0]
     elif len(antecedent_tensors) == 2:
-        return torch.einsum(equation, antecedent_tensors[0], antecedent_tensors[1])
+        eq = equation[0] if isinstance(equation, (list, tuple)) else equation
+        return torch.einsum(eq, antecedent_tensors[0], antecedent_tensors[1])
     else:
-        # Multiple antecedents - chain them
+        # Multiple antecedents - chain pairwise
+        if isinstance(equation, str):
+            # Reuse same equation for all steps (caller's responsibility
+            # to ensure intermediate shapes are compatible)
+            equations = [equation] * (len(antecedent_tensors) - 1)
+        else:
+            equations = list(equation)
+            if len(equations) != len(antecedent_tensors) - 1:
+                raise ValueError(
+                    f"Expected {len(antecedent_tensors) - 1} equations for "
+                    f"{len(antecedent_tensors)} antecedents, got {len(equations)}"
+                )
         result = antecedent_tensors[0]
-        for t in antecedent_tensors[1:]:
-            result = torch.einsum(equation, result, t)
+        for sub_eq, t in zip(equations, antecedent_tensors[1:]):
+            result = torch.einsum(sub_eq, result, t)
         return result
 
 

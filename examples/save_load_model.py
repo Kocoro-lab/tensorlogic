@@ -8,9 +8,6 @@ Demonstrates:
 4. Use loaded model for inference
 """
 
-import sys
-sys.path.append('..')
-
 import torch
 from tensorlogic import EmbeddingSpace, save_model, load_model, export_embeddings
 from tensorlogic.learn.trainer import EmbeddingTrainer

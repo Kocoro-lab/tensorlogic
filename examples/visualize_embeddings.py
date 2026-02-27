@@ -8,17 +8,23 @@ Shows:
 4. 2D projection of embeddings (PCA)
 """
 
-import sys
-sys.path.append('..')
-
 import torch
 import numpy as np
-import matplotlib.pyplot as plt
+try:
+    import matplotlib.pyplot as plt
+except ImportError:  # pragma: no cover - optional demo dependency
+    plt = None
 from tensorlogic import EmbeddingSpace, load_model
+
+
+def _require_matplotlib():
+    if plt is None:
+        raise ImportError("This example requires matplotlib. Install with: pip install matplotlib")
 
 
 def visualize_relation_matrix(model, relation_name, figsize=(10, 8)):
     """Visualize a relation matrix as a heatmap"""
+    _require_matplotlib()
     if relation_name not in model.relations:
         print(f"Relation '{relation_name}' not found in model")
         return
@@ -55,6 +61,7 @@ def visualize_relation_matrix(model, relation_name, figsize=(10, 8)):
 
 def visualize_embeddings_heatmap(model, figsize=(12, 6)):
     """Visualize all object embeddings as a heatmap"""
+    _require_matplotlib()
     embeddings = model.object_embeddings.detach().cpu().numpy()
 
     fig, ax = plt.subplots(figsize=figsize)
@@ -82,6 +89,7 @@ def visualize_embeddings_heatmap(model, figsize=(12, 6)):
 
 def visualize_similarity_matrix(model, figsize=(8, 7)):
     """Visualize cosine similarity between all objects"""
+    _require_matplotlib()
     embeddings = model.object_embeddings.detach().cpu().numpy()
 
     # Compute cosine similarity matrix
@@ -121,6 +129,7 @@ def visualize_similarity_matrix(model, figsize=(8, 7)):
 
 def visualize_embeddings_2d(model, figsize=(10, 8)):
     """Project embeddings to 2D using PCA and visualize"""
+    _require_matplotlib()
     embeddings = model.object_embeddings.detach().cpu().numpy()
 
     # PCA to 2D
@@ -154,6 +163,7 @@ def visualize_embeddings_2d(model, figsize=(10, 8)):
 
 def visualize_query_scores(model, relation_name, figsize=(10, 8)):
     """Visualize query scores for all object pairs"""
+    _require_matplotlib()
     num_objects = model.num_objects
     names = [model.object_names.get(i, f'Object {i}') for i in range(num_objects)]
 

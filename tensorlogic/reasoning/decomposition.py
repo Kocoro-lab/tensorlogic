@@ -67,6 +67,7 @@ class RESCALTrainer:
         self.max_grad_norm = max_grad_norm
         self.bce = nn.BCEWithLogitsLoss()
         self.use_amp = use_amp
+        self._amp_device_type = torch.device(device).type
         self._scaler = torch.amp.GradScaler(device=device, enabled=use_amp)
 
     def _sample_negatives(self, pos: torch.Tensor, num_objects: int, k: int) -> torch.Tensor:
@@ -111,7 +112,7 @@ class RESCALTrainer:
 
             self.optim.zero_grad()
             if self.use_amp:
-                with torch.cuda.amp.autocast():
+                with torch.amp.autocast(device_type=self._amp_device_type):
                     pos_logits = self.model.score_triples(heads, rels, tails)
                     pos_targets = torch.ones_like(pos_logits)
                     neg_logits = self.model.score_triples(nh, nr, nt)

@@ -15,7 +15,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from typing import Optional, Tuple, List
-import matplotlib.pyplot as plt
 
 # TensorLogic imports
 from tensorlogic.core import TensorProgram

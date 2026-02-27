@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -24,7 +24,6 @@ class FeedForward(nn.Module):
             x = torch.tanh(self.fc1(x))
         x = self.dropout(x)
         x = self.fc2(x)
-        x = self.dropout(x)
         return x
 
 
@@ -46,20 +45,31 @@ class TransformerEncoderLayer(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.ff = FeedForward(d_model, dim_feedforward, dropout=dropout, activation="relu")
 
-    def forward(self, src: torch.Tensor, src_mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(
+        self,
+        src: torch.Tensor,
+        src_mask: Optional[torch.Tensor] = None,
+        return_attention: bool = False,
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, Optional[torch.Tensor]]]:
         if self.norm_first:
             x = src
             x = self.norm1(x)
-            attn_out, _ = self.self_attn(x, mask=src_mask)
+            attn_out, attn_weights = self.self_attn(x, mask=src_mask, need_weights=return_attention)
             x = src + self.dropout(attn_out)
             y = self.norm2(x)
             y = self.ff(y)
-            return x + self.dropout(y)
+            output = x + self.dropout(y)
+            if return_attention:
+                return output, attn_weights
+            return output
         else:
-            attn_out, _ = self.self_attn(src, mask=src_mask)
+            attn_out, attn_weights = self.self_attn(src, mask=src_mask, need_weights=return_attention)
             x = self.norm1(src + self.dropout(attn_out))
             y = self.ff(x)
-            return self.norm2(x + self.dropout(y))
+            output = self.norm2(x + self.dropout(y))
+            if return_attention:
+                return output, attn_weights
+            return output
 
 
 class TransformerEncoder(nn.Module):
@@ -91,26 +101,13 @@ class TransformerEncoder(nn.Module):
         src: torch.Tensor,
         src_mask: Optional[torch.Tensor] = None,
         return_attention: bool = False
-    ) -> torch.Tensor:
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, List]]:
         x = src
         attention_weights = []
 
         for layer in self.layers:
             if return_attention:
-                # Modify layer to return attention weights
-                x_prev = x
-                if layer.norm_first:
-                    x = layer.norm1(x)
-                    attn_out, attn_weights = layer.self_attn(x, mask=src_mask, need_weights=True)
-                    x = x_prev + layer.dropout(attn_out)
-                    y = layer.norm2(x)
-                    y = layer.ff(y)
-                    x = x + layer.dropout(y)
-                else:
-                    attn_out, attn_weights = layer.self_attn(x, mask=src_mask, need_weights=True)
-                    x = layer.norm1(x + layer.dropout(attn_out))
-                    y = layer.ff(x)
-                    x = layer.norm2(x + layer.dropout(y))
+                x, attn_weights = layer(x, src_mask=src_mask, return_attention=True)
                 attention_weights.append(attn_weights)
             else:
                 x = layer(x, src_mask=src_mask)

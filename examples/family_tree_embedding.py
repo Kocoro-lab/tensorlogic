@@ -8,9 +8,6 @@ Demonstrates:
 4. Composing relations (parent -> grandparent)
 """
 
-import sys
-sys.path.append('..')
-
 import torch
 from tensorlogic.reasoning.embed import EmbeddingSpace
 from tensorlogic.learn.trainer import EmbeddingTrainer

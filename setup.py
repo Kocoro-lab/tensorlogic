@@ -12,6 +12,10 @@ setup(
         "tensorly>=0.8.0",
         "scipy>=1.7.0",
     ],
+    extras_require={
+        "examples": ["matplotlib>=3.7.0", "scikit-learn>=1.2.0"],
+        "dev": ["pytest>=7.4.0"],
+    },
     python_requires=">=3.8",
     classifiers=[
         "Development Status :: 3 - Alpha",

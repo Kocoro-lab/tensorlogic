@@ -276,8 +276,10 @@ def reinitialize_failed_parameters(
                 if 'weight' in name:
                     if len(param.shape) == 2:  # Matrix
                         nn.init.normal_(param, mean=0, std=0.1)
+                    elif len(param.shape) == 1:  # Bias-like vectors
+                        nn.init.normal_(param, mean=0, std=0.02)
                     else:
-                        nn.init.xavier_uniform_(param)
+                        nn.init.normal_(param, mean=0, std=0.1)
                 elif 'bias' in name:
                     param.data.zero_()
 

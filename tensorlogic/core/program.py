@@ -111,20 +111,55 @@ class TensorProgram(nn.Module):
             # Matrix multiplication
             parts = expr.split('@')
             if len(parts) == 2:
-                t1_name = parts[0].strip()
-                t2_name = parts[1].strip()
+                t1_name, t2_name = [p.strip() for p in parts]
+
                 def rule_func(tensors):
                     t1 = tensors.get(t1_name, self.constants.get(t1_name))
                     t2 = tensors.get(t2_name, self.constants.get(t2_name))
+                    if t1 is None or t2 is None:
+                        raise ValueError(f"Unknown tensor name(s) in expression: {expr}")
                     return torch.matmul(t1, t2)
+
                 return (rule_func, [t1_name, t2_name])
 
-        # If inputs provided, create a simple evaluator
+            raise ValueError(f"Invalid matrix multiplication expression: {expr}")
+
+        if '*' in expr:
+            # Alias for matrix multiplication
+            parts = expr.split('*')
+            if len(parts) == 2:
+                t1_name, t2_name = [p.strip() for p in parts]
+
+                def rule_func(tensors):
+                    t1 = tensors.get(t1_name, self.constants.get(t1_name))
+                    t2 = tensors.get(t2_name, self.constants.get(t2_name))
+                    if t1 is None or t2 is None:
+                        raise ValueError(f"Unknown tensor name(s) in expression: {expr}")
+                    return torch.matmul(t1, t2)
+
+                return (rule_func, [t1_name, t2_name])
+
+            raise ValueError(f"Invalid matrix multiplication expression: {expr}")
+
+        # If inputs provided, create a direct evaluator
         if inputs:
+            if len(inputs) > 1 and not expr:
+                raise ValueError(
+                    f"Cannot evaluate multiple inputs for {name} without an explicit expression"
+                )
+
             def eval_func(tensors):
-                # Simple evaluation - just return identity for now
-                # More complex parsing would go here
-                return tensors[inputs[0]]
+                # Resolve input tensors from current results, with constants as fallback.
+                values = [tensors.get(k, self.constants.get(k)) for k in inputs]
+                if any(v is None for v in values):
+                    missing = [k for k, v in zip(inputs, values) if v is None]
+                    raise ValueError(f"Unknown tensor name(s): {missing}")
+
+                if len(values) == 1:
+                    return values[0]
+
+                return forward_chain_step(values, equation=expr)
+
             return (eval_func, inputs)
 
         raise ValueError(f"Cannot parse expression: {expr}")
@@ -185,12 +220,17 @@ class TensorProgram(nn.Module):
         """Get all learnable parameters"""
         return list(self.tensors.parameters())
 
-    def to(self, device: str):
-        """Move program to device"""
-        self.device = device
-        super().to(device)
+    def to(self, *args, **kwargs):
+        """Move program to device and/or dtype."""
+        super().to(*args, **kwargs)
+
+        if len(args) >= 1 and isinstance(args[0], (str, torch.device)):
+            self.device = str(args[0])
+        elif "device" in kwargs and kwargs["device"] is not None:
+            self.device = str(kwargs["device"])
+
         for k, v in self.constants.items():
-            self.constants[k] = v.to(device)
+            self.constants[k] = v.to(*args, **kwargs)
         return self
 
 

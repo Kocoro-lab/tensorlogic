@@ -144,7 +144,8 @@ class EmbeddingSpace(nn.Module):
         relation_name: str,
         subject: int,
         obj: int,
-        use_sigmoid: bool = True
+        use_sigmoid: bool = True,
+        track_grad: bool = False
     ) -> torch.Tensor:
         """
         Query if a relation holds between two objects
@@ -161,23 +162,27 @@ class EmbeddingSpace(nn.Module):
         if relation_name not in self.relations:
             raise ValueError(f"Relation {relation_name} not found")
 
-        # Get embeddings
-        emb_subj = self.object_embeddings[subject]  # [dim]
-        emb_obj = self.object_embeddings[obj]      # [dim]
-        relation = self.relations[relation_name]    # [dim, dim]
+        context = torch.enable_grad() if track_grad else torch.no_grad()
+        with context:
+            # Get embeddings
+            emb_subj = self.object_embeddings[subject]  # [dim]
+            emb_obj = self.object_embeddings[obj]      # [dim]
+            relation = self.relations[relation_name]    # [dim, dim]
 
-        # Compute: emb_subj^T @ relation @ emb_obj
-        temp = torch.matmul(relation, emb_obj)     # [dim]
-        score = torch.dot(emb_subj, temp)          # scalar
+            # Compute: emb_subj^T @ relation @ emb_obj
+            temp = torch.matmul(relation, emb_obj)     # [dim]
+            score = torch.dot(emb_subj, temp)          # scalar
 
-        if use_sigmoid:
-            return torch.sigmoid(score / self.temperature)
+            if use_sigmoid:
+                score = torch.sigmoid(score / self.temperature)
+
         return score
 
     def query_all_pairs(
         self,
         relation_name: str,
-        threshold: float = 0.5
+        threshold: float = 0.5,
+        track_grad: bool = False
     ) -> torch.Tensor:
         """
         Query all pairs for a relation
@@ -189,16 +194,18 @@ class EmbeddingSpace(nn.Module):
         Returns:
             Binary matrix [num_objects, num_objects]
         """
-        relation = self.relations[relation_name]  # [dim, dim]
-        embeddings = self.object_embeddings       # [num_objects, dim]
+        context = torch.enable_grad() if track_grad else torch.no_grad()
+        with context:
+            relation = self.relations[relation_name]  # [dim, dim]
+            embeddings = self.object_embeddings       # [num_objects, dim]
 
-        # Compute all pairs: embeddings @ relation @ embeddings^T
-        temp = torch.matmul(embeddings, relation)  # [num_objects, dim]
-        scores = torch.matmul(temp, embeddings.T)  # [num_objects, num_objects]
+            # Compute all pairs: embeddings @ relation @ embeddings^T
+            temp = torch.matmul(embeddings, relation)  # [num_objects, dim]
+            scores = torch.matmul(temp, embeddings.T)  # [num_objects, num_objects]
 
-        # Apply sigmoid and threshold
-        probs = torch.sigmoid(scores / self.temperature)
-        return (probs > threshold).float()
+            # Apply sigmoid and threshold
+            probs = torch.sigmoid(scores / self.temperature)
+            return (probs > threshold).float()
 
     def score_with_composer(
         self,
@@ -207,6 +214,7 @@ class EmbeddingSpace(nn.Module):
         objects: torch.Tensor,
         relation_order: Optional[list] = None,
         use_sigmoid: bool = True,
+        track_grad: bool = False,
     ) -> torch.Tensor:
         """
         Score (subject, object) pairs via a multi-hop composer over this
@@ -221,13 +229,16 @@ class EmbeddingSpace(nn.Module):
         Returns:
             [batch] scores/probabilities
         """
-        subj_emb = self.object_embeddings[subjects]
-        obj_emb = self.object_embeddings[objects]
-        bank = self.relation_bank_tensor(order=relation_order)
+        context = torch.enable_grad() if track_grad else torch.no_grad()
+        with context:
+            subj_emb = self.object_embeddings[subjects]
+            obj_emb = self.object_embeddings[objects]
+            bank = self.relation_bank_tensor(order=relation_order)
 
-        logits = composer(subj_emb, obj_emb, bank)
-        if use_sigmoid:
-            return torch.sigmoid(logits / self.temperature)
+            logits = composer(subj_emb, obj_emb, bank)
+            if use_sigmoid:
+                logits = torch.sigmoid(logits / self.temperature)
+
         return logits
 
     def score_with_composer_batched(
@@ -238,6 +249,7 @@ class EmbeddingSpace(nn.Module):
         relation_order: Optional[list] = None,
         use_sigmoid: bool = True,
         batch_size: int = 65536,
+        track_grad: bool = False,
     ) -> torch.Tensor:
         """
         Chunked version of score_with_composer to avoid OOM on large pair lists.
@@ -249,7 +261,12 @@ class EmbeddingSpace(nn.Module):
             sub = subjects[i:i+batch_size]
             obj = objects[i:i+batch_size]
             outputs.append(self.score_with_composer(
-                composer, sub, obj, relation_order=relation_order, use_sigmoid=use_sigmoid
+                composer,
+                sub,
+                obj,
+                relation_order=relation_order,
+                use_sigmoid=use_sigmoid,
+                track_grad=track_grad
             ))
         return torch.cat(outputs, dim=0)
 
@@ -303,15 +320,16 @@ class EmbeddingSpace(nn.Module):
         Returns:
             List of (index, similarity_score) tuples
         """
-        emb = self.object_embeddings[obj]  # [dim]
-        all_embs = self.object_embeddings  # [num_objects, dim]
+        with torch.no_grad():
+            emb = self.object_embeddings[obj]  # [dim]
+            all_embs = self.object_embeddings  # [num_objects, dim]
 
-        # Compute similarities
-        similarities = torch.matmul(all_embs, emb)  # [num_objects]
+            # Compute similarities
+            similarities = torch.matmul(all_embs, emb)  # [num_objects]
 
-        # Get top-k (excluding self)
-        similarities[obj] = -float('inf')
-        top_scores, top_indices = torch.topk(similarities, k=top_k)
+            # Get top-k (excluding self)
+            similarities[obj] = -float('inf')
+            top_scores, top_indices = torch.topk(similarities, k=top_k)
 
         results = []
         for idx, score in zip(top_indices, top_scores):

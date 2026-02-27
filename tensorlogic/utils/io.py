@@ -61,7 +61,10 @@ def load_model(model, path: str) -> Dict[str, Any]:
     Returns:
         Metadata dict (if any)
     """
-    checkpoint = torch.load(path, weights_only=False)
+    try:
+        checkpoint = torch.load(path, weights_only=True)
+    except Exception:
+        checkpoint = torch.load(path, weights_only=False)
 
     # For EmbeddingSpace, need to add relations first
     if checkpoint['model_type'] == 'EmbeddingSpace':
@@ -156,7 +159,10 @@ def load_checkpoint(model, optimizer, path: str) -> tuple:
     Returns:
         (epoch, loss, metadata)
     """
-    checkpoint = torch.load(path, weights_only=False)
+    try:
+        checkpoint = torch.load(path, weights_only=True)
+    except Exception:
+        checkpoint = torch.load(path, weights_only=False)
 
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])

@@ -71,11 +71,12 @@ class ContrastiveLoss(nn.Module):
         neg_scores = scorer(model, neg_subj_flat, neg_obj_flat)  # [B*K]
         neg_targets = torch.zeros_like(neg_scores)
 
-        # Margin (optional): encourage neg_scores < margin by down-weighting small logits
+        # Margin (optional): push negative scores below the target margin
         if self.use_logits:
-            neg_loss = self._bce(neg_scores - self.margin, neg_targets)
+            neg_loss = self._bce(neg_scores + self.margin, neg_targets)
         else:
             neg_loss = self._bce(neg_scores, neg_targets)
+            if self.margin > 0:
+                neg_loss = neg_loss + torch.relu(neg_scores - self.margin).mean()
 
         return pos_loss + neg_loss
-

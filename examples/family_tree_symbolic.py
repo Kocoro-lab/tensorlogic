@@ -4,9 +4,6 @@ Family Tree Reasoning Example - Symbolic Mode
 Demonstrates logical reasoning using Boolean tensors.
 """
 
-import sys
-sys.path.append('..')
-
 import torch
 from tensorlogic import TensorProgram
 from tensorlogic.reasoning.forward import forward_chain

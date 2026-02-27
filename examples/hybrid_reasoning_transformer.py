@@ -26,7 +26,7 @@ from tensorlogic.transformers import (
     MultiHeadAttention,
     TransformerEncoder,
     DecoderOnlyLM,
-    SinusoidalPositionalEncoding
+    SinusoidalPositionalEncoding,
 )
 from tensorlogic.transformers.utils import causal_mask
 from tensorlogic.ops import logical_join, logical_project
@@ -305,13 +305,13 @@ class KnowledgeGuidedTextGenerator(nn.Module):
             next_logits = logits[:, -1, :] / temperature  # [B, V]
 
             # Map to entity space to check constraints
-            hidden = self.lm.encoder(
-                self.lm.pos_emb(self.lm.tok_emb(generated))
-            )[:, -1, :]  # [B, D]
+            emb = self.lm.pos_emb(self.lm.tok_emb(generated))
+            mask = causal_mask(generated.size(1), device=device)
+            hidden = self.lm.encoder(emb, src_mask=mask)[:, -1, :]  # [B, D]
             entity_emb = self.to_entity_space(hidden)  # [B, E]
 
             # Find closest entities
-            similarities = torch.matmul(entity_emb, self.space.embeddings.T)  # [B, num_entities]
+            similarities = torch.matmul(entity_emb, self.space.object_embeddings.T)  # [B, num_entities]
             closest_entities = similarities.argmax(dim=-1)  # [B]
 
             # Apply symbolic constraints

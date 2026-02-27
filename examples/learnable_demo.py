@@ -68,6 +68,7 @@ def main():
             objects=objects,
             relation_order=['parent'],
             use_sigmoid=True,
+            track_grad=True,
         )
 
     # Build tiny batch list

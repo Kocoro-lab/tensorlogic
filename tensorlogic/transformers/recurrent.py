@@ -420,11 +420,18 @@ class BidirectionalWrapper(nn.Module):
 
         # Create backward RNN with same architecture
         rnn_class = type(rnn_module)
-        self.backward_rnn = rnn_class(
+        rnn_kwargs = dict(
             input_size=rnn_module.input_size,
             hidden_size=rnn_module.hidden_size,
-            bias=rnn_module.bias is not None
+            bias=rnn_module.bias is not None,
         )
+
+        if hasattr(rnn_module, "mode"):
+            rnn_kwargs["mode"] = rnn_module.mode
+        if hasattr(rnn_module, "activation"):
+            rnn_kwargs["activation"] = rnn_module.activation
+
+        self.backward_rnn = rnn_class(**rnn_kwargs)
 
         self.merge_mode = merge_mode
 
@@ -445,11 +452,17 @@ class BidirectionalWrapper(nn.Module):
                    [batch_size, seq_len, hidden_size] otherwise
         """
         # Forward direction
-        forward_out, _ = self.forward_rnn(x, initial_states, return_sequences=True)
+        if isinstance(self.forward_rnn, LSTM):
+            forward_out, _ = self.forward_rnn(x, initial_states=initial_states, return_sequences=True)
+        else:
+            forward_out, _ = self.forward_rnn(x, h_0=initial_states, return_sequences=True)
 
         # Backward direction (reverse sequence)
         x_reversed = torch.flip(x, dims=[1])
-        backward_out, _ = self.backward_rnn(x_reversed, initial_states, return_sequences=True)
+        if isinstance(self.backward_rnn, LSTM):
+            backward_out, _ = self.backward_rnn(x_reversed, initial_states=initial_states, return_sequences=True)
+        else:
+            backward_out, _ = self.backward_rnn(x_reversed, h_0=initial_states, return_sequences=True)
         backward_out = torch.flip(backward_out, dims=[1])  # Flip back
 
         # Merge outputs

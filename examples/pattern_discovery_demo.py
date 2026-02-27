@@ -62,7 +62,14 @@ def main():
     trainer = PairScoringTrainer(composer, learning_rate=0.01)
 
     def scorer(model, subjects, objects):
-        return space.score_with_composer(model, subjects, objects, relation_order=['parent'], use_sigmoid=True)
+        return space.score_with_composer(
+            model,
+            subjects,
+            objects,
+            relation_order=['parent'],
+            use_sigmoid=True,
+            track_grad=True,
+        )
 
     # Train for a few epochs
     batches = [{'pos': pos} for _ in range(150)]

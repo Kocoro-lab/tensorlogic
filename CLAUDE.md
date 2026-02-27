@@ -132,11 +132,11 @@ print('\n'.join(export_rnn_as_equations(lstm)))
 from tensorlogic.core.program import TensorProgram
 
 # Boolean mode (strict logic)
-prog = TensorProgram(mode='boolean', cuda=False)
+prog = TensorProgram(mode='boolean', device='cpu')
 prog.add_tensor("parent", data=torch.tensor([[1, 0], [0, 1]], dtype=torch.int8))
 
 # Continuous mode (learnable)
-prog = TensorProgram(mode='continuous', cuda=True)
+prog = TensorProgram(mode='continuous', device='cuda')
 prog.add_tensor("similarity", data=torch.randn(10, 10, requires_grad=True))
 ```
 
@@ -144,7 +144,7 @@ prog.add_tensor("similarity", data=torch.randn(10, 10, requires_grad=True))
 ```python
 from tensorlogic.reasoning.embed import EmbeddingSpace
 
-space = EmbeddingSpace(num_objects=100, embedding_dim=16, cuda=False)
+space = EmbeddingSpace(num_objects=100, embedding_dim=16, device='cpu')
 space.add_relation("knows", init='random')   # nn.Parameter, learnable
 space.add_relation("likes", init='random')
 # Query and compose relations
@@ -227,7 +227,7 @@ load_model(program, "program_params.pt")
    - Fix: Use predicate invention (RESCAL) or pattern discovery for self-supervised learning
 
 3. **OOM with large embeddings**: Large embedding spaces can exhaust GPU memory.
-   - Fix: Use sparse tensors via `sparse.py` utilities, reduce batch size, or switch `cuda=False`
+   - Fix: Use sparse tensors via `sparse.py` utilities, reduce batch size, or switch `device='cpu'`
 
 4. **Forgetting to register entities**: EmbeddingSpace requires entities to be pre‑registered.
    - Fix: Call `space.add_object(name, index)` (optionally with an initial embedding)

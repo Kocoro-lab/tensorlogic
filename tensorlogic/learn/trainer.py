@@ -254,6 +254,10 @@ class EmbeddingTrainer(Trainer):
             epochs: Number of epochs
             verbose: Show progress
         """
+        # Materialize relation tensor once
+        relation = self.program.relations[relation_name]
+        temperature = self.program.temperature
+
         # Create negative pairs if not provided
         if negative_pairs is None:
             negative_pairs = self._sample_negative_pairs(
@@ -261,29 +265,37 @@ class EmbeddingTrainer(Trainer):
                 n_samples=len(positive_pairs)
             )
 
+        pos_pairs = torch.tensor(positive_pairs, dtype=torch.long, device=self.device).reshape(-1, 2)
+        neg_pairs = torch.tensor(negative_pairs, dtype=torch.long, device=self.device).reshape(-1, 2)
+        if pos_pairs.numel() == 0:
+            return
+        has_negatives = neg_pairs.numel() > 0
+
         # Training loop
         iterator = tqdm(range(epochs)) if verbose else range(epochs)
 
         for epoch in iterator:
             self.optimizer.zero_grad()
 
-            total_loss = 0.0
+            pos_subj = pos_pairs[:, 0]
+            pos_obj = pos_pairs[:, 1]
+            pos_emb_subj = self.program.object_embeddings[pos_subj]
+            pos_emb_obj = self.program.object_embeddings[pos_obj]
 
-            # Positive examples
-            for subj, obj in positive_pairs:
-                score = self.program.query_relation(
-                    relation_name, subj, obj, use_sigmoid=True
-                )
-                loss = -torch.log(score + 1e-10)  # Negative log likelihood
-                total_loss += loss
+            pos_scores = torch.einsum("bi,ij,bj->b", pos_emb_subj, relation, pos_emb_obj)
+            pos_scores = torch.sigmoid(pos_scores / temperature)
 
-            # Negative examples
-            for subj, obj in negative_pairs:
-                score = self.program.query_relation(
-                    relation_name, subj, obj, use_sigmoid=True
-                )
-                loss = -torch.log(1 - score + 1e-10)
-                total_loss += loss
+            if has_negatives:
+                neg_subj = neg_pairs[:, 0]
+                neg_obj = neg_pairs[:, 1]
+                neg_emb_subj = self.program.object_embeddings[neg_subj]
+                neg_emb_obj = self.program.object_embeddings[neg_obj]
+                neg_scores = torch.einsum("bi,ij,bj->b", neg_emb_subj, relation, neg_emb_obj)
+                neg_scores = torch.sigmoid(neg_scores / temperature)
+                neg_loss = -torch.log(1.0 - neg_scores + 1e-10).sum()
+                total_loss = -torch.log(pos_scores + 1e-10).sum() + neg_loss
+            else:
+                total_loss = -torch.log(pos_scores + 1e-10).sum()
 
             # Optimize
             total_loss.backward()
@@ -298,18 +310,28 @@ class EmbeddingTrainer(Trainer):
         n_samples: int
     ) -> List[tuple]:
         """Sample negative pairs (not in positive set)"""
-        positive_set = set(positive_pairs)
-        negatives = []
+        if n_samples <= 0:
+            return []
 
         num_objects = self.program.num_objects
+        positive_set = set(positive_pairs)
+        mask = torch.ones((num_objects, num_objects), dtype=torch.bool, device=self.device)
+        for i, j in positive_set:
+            if 0 <= i < num_objects and 0 <= j < num_objects:
+                mask[i, j] = False
+        mask.fill_diagonal_(False)
 
-        while len(negatives) < n_samples:
-            i = torch.randint(0, num_objects, (1,)).item()
-            j = torch.randint(0, num_objects, (1,)).item()
-            if (i, j) not in positive_set and i != j:
-                negatives.append((i, j))
+        available = mask.nonzero(as_tuple=False)
+        if available.shape[0] == 0:
+            return []
 
-        return negatives
+        if available.shape[0] <= n_samples:
+            selected = available
+        else:
+            perm = torch.randperm(available.shape[0], device=self.device)
+            selected = available[perm[:n_samples]]
+
+        return [(int(i.item()), int(j.item())) for i, j in selected]
 
 
 class PairScoringTrainer:
@@ -333,6 +355,7 @@ class PairScoringTrainer:
         self.device = device
         self.max_grad_norm = max_grad_norm
         self.use_amp = use_amp
+        self._amp_device_type = torch.device(device).type
 
         params = list(model.parameters())
         if optimizer_type == 'sgd':
@@ -372,7 +395,7 @@ class PairScoringTrainer:
                 neg = neg.to(self.device)
 
             if self.use_amp:
-                with torch.cuda.amp.autocast():
+                with torch.amp.autocast(device_type=self._amp_device_type):
                     loss = loss_fn(
                         self.model,
                         positive_pairs=pos,

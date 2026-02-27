@@ -24,8 +24,12 @@ from tensorlogic.transformers import DecoderOnlyLM
 
 def load_model(checkpoint_path, device='cpu'):
     """Load model from checkpoint."""
-    # PyTorch 2.6+ requires weights_only=False for complex objects
-    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
+    try:
+        # Prefer safer loading in newer PyTorch versions
+        checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
+    except TypeError:
+        # Fallback for older PyTorch versions without weights_only parameter
+        checkpoint = torch.load(checkpoint_path, map_location=device)
 
     # Handle both old format (model_config) and new format (config)
     if 'config' in checkpoint:
