@@ -8,7 +8,7 @@ Key capabilities
 - Boolean mode (deductive, no hallucinations) and continuous mode (learnable with temperature)
 - Embedding‑space reasoning and gated multi‑hop composer (learns compositions)
 - Automatic predicate invention via RESCAL (no labels, no manual patterns)
-- **FB15k-237 benchmark**: RESCAL beats LibKGE reference (MRR 0.347 vs 0.304)
+- **FB15k-237 benchmark**: RESCAL outperforms the LibKGE reference and is competitive with RotatE/TuckER (MRR 0.347)
 - Sparse facts, AMP, batching, and a simple benchmark suite
 
 ## Requirements
