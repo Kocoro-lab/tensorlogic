@@ -236,6 +236,15 @@ class EmbeddingTrainer(Trainer):
     Trains embeddings to match relation facts.
     """
 
+    def __init__(self, program, **kwargs):
+        from ..reasoning.embed import EmbeddingSpace
+        if not isinstance(program, EmbeddingSpace):
+            raise TypeError(
+                f"EmbeddingTrainer requires an EmbeddingSpace, got {type(program).__name__}. "
+                "Use Trainer for TensorProgram or PairScoringTrainer for generic models."
+            )
+        super().__init__(program, **kwargs)
+
     def train_relation(
         self,
         relation_name: str,

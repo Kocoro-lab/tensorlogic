@@ -188,16 +188,25 @@ class TensorProgram(nn.Module):
         for k, v in self.tensors.items():
             results[k] = v
 
+        # Collect tensor names consumed by other equations so we can
+        # avoid thresholding intermediates in boolean mode.
+        consumed = set()
+        for eq_name in self.equation_order:
+            _, inputs = self.equations[eq_name]
+            if inputs:
+                consumed.update(inputs)
+
         # Execute equations in order
         for eq_name in self.equation_order:
             func, inputs = self.equations[eq_name]
-            result = func(results)
+            results[eq_name] = func(results)
 
-            # Apply mode-specific processing
-            if self.mode == 'boolean':
-                result = (result > 0.5).float()
-
-            results[eq_name] = result
+        # In boolean mode, threshold only final outputs (not intermediates
+        # consumed by downstream equations) to preserve algebraic composition.
+        if self.mode == 'boolean':
+            for eq_name in self.equation_order:
+                if eq_name not in consumed:
+                    results[eq_name] = (results[eq_name] > 0.5).float()
 
         return results
 

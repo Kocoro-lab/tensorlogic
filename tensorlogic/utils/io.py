@@ -2,10 +2,13 @@
 Input/Output utilities for saving and loading models
 """
 
+import logging
 import torch
 import json
 from pathlib import Path
 from typing import Dict, Any
+
+logger = logging.getLogger(__name__)
 
 
 def save_model(model, path: str, metadata: Dict[str, Any] = None):
@@ -45,9 +48,9 @@ def save_model(model, path: str, metadata: Dict[str, Any] = None):
 
     # Save
     torch.save(checkpoint, path)
-    print(f"Model saved to {path}")
-    print(f"  - Parameters: {sum(p.numel() for p in model.parameters())}")
-    print(f"  - Size: {path.stat().st_size / 1024:.2f} KB")
+    logger.info("Model saved to %s (%d params, %.2f KB)",
+                path, sum(p.numel() for p in model.parameters()),
+                path.stat().st_size / 1024)
 
 
 def load_model(model, path: str) -> Dict[str, Any]:
@@ -60,11 +63,23 @@ def load_model(model, path: str) -> Dict[str, Any]:
 
     Returns:
         Metadata dict (if any)
+
+    Raises:
+        RuntimeError: If the checkpoint contains non-standard types that
+            fail ``weights_only=True`` validation. Re-save the checkpoint
+            with the current version of tensorlogic to fix this.
     """
     try:
         checkpoint = torch.load(path, weights_only=True)
-    except Exception:
-        checkpoint = torch.load(path, weights_only=False)
+    except Exception as exc:
+        raise RuntimeError(
+            f"Failed to load checkpoint from {path} with weights_only=True. "
+            "This usually means the file contains custom objects saved by an "
+            "older version. Re-save the checkpoint with the current version "
+            "of tensorlogic, or pass the file through "
+            "torch.load(path, weights_only=False) manually after reviewing "
+            "its contents for safety."
+        ) from exc
 
     # For EmbeddingSpace, need to add relations first
     if checkpoint['model_type'] == 'EmbeddingSpace':
@@ -89,10 +104,7 @@ def load_model(model, path: str) -> Dict[str, Any]:
         model.object_names = checkpoint['object_names']
         model.name_to_index = checkpoint['name_to_index']
 
-    print(f"Model loaded from {path}")
-    print(f"  - Type: {checkpoint['model_type']}")
-    if 'config' in checkpoint:
-        print(f"  - Config: {checkpoint['config']}")
+    logger.info("Model loaded from %s (type: %s)", path, checkpoint['model_type'])
 
     return checkpoint.get('metadata', {})
 
@@ -144,7 +156,7 @@ def save_checkpoint(
         checkpoint['metadata'] = metadata
 
     torch.save(checkpoint, path)
-    print(f"Checkpoint saved to {path} (epoch {epoch}, loss {loss:.4f})")
+    logger.info("Checkpoint saved to %s (epoch %d, loss %.4f)", path, epoch, loss)
 
 
 def load_checkpoint(model, optimizer, path: str) -> tuple:
@@ -158,11 +170,19 @@ def load_checkpoint(model, optimizer, path: str) -> tuple:
 
     Returns:
         (epoch, loss, metadata)
+
+    Raises:
+        RuntimeError: If the checkpoint fails ``weights_only=True`` validation.
+            See :func:`load_model` for migration guidance.
     """
     try:
         checkpoint = torch.load(path, weights_only=True)
-    except Exception:
-        checkpoint = torch.load(path, weights_only=False)
+    except Exception as exc:
+        raise RuntimeError(
+            f"Failed to load checkpoint from {path} with weights_only=True. "
+            "Re-save with the current version of tensorlogic, or load manually "
+            "via torch.load(path, weights_only=False) after reviewing contents."
+        ) from exc
 
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
@@ -176,8 +196,7 @@ def load_checkpoint(model, optimizer, path: str) -> tuple:
     loss = checkpoint['loss']
     metadata = checkpoint.get('metadata', {})
 
-    print(f"Checkpoint loaded from {path}")
-    print(f"  - Epoch: {epoch}, Loss: {loss:.4f}")
+    logger.info("Checkpoint loaded from %s (epoch %d, loss %.4f)", path, epoch, loss)
 
     return epoch, loss, metadata
 
@@ -219,4 +238,4 @@ def export_embeddings(model, path: str):
     with open(path, 'w') as f:
         json.dump(data, f, indent=2)
 
-    print(f"Embeddings exported to {path}")
+    logger.info("Embeddings exported to %s", path)

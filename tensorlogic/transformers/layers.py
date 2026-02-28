@@ -95,6 +95,12 @@ class TransformerEncoder(nn.Module):
             )
             for _ in range(num_layers)
         ])
+        # Pre-norm (norm_first=True) applies LayerNorm before each sublayer,
+        # so the final layer's output is unnormalized after the residual
+        # connection. A final LayerNorm is needed to normalize it.
+        # Post-norm (norm_first=False) already normalizes after each sublayer,
+        # so no extra norm is needed.
+        self.norm = nn.LayerNorm(d_model) if norm_first else None
 
     def forward(
         self,
@@ -111,6 +117,9 @@ class TransformerEncoder(nn.Module):
                 attention_weights.append(attn_weights)
             else:
                 x = layer(x, src_mask=src_mask)
+
+        if self.norm is not None:
+            x = self.norm(x)
 
         if return_attention:
             return x, attention_weights
@@ -250,6 +259,8 @@ class TransformerDecoder(nn.Module):
             )
             for _ in range(num_layers)
         ])
+        # Pre-norm needs final LayerNorm (see TransformerEncoder comment).
+        # Post-norm already normalizes after each sublayer.
         self.norm = nn.LayerNorm(d_model) if norm_first else None
 
     def forward(

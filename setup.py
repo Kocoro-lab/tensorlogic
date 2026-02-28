@@ -9,8 +9,7 @@ setup(
     install_requires=[
         "torch>=2.0.0",
         "numpy>=1.20.0",
-        "tensorly>=0.8.0",
-        "scipy>=1.7.0",
+        "tqdm>=4.65.0",
     ],
     extras_require={
         "examples": ["matplotlib>=3.7.0", "scikit-learn>=1.2.0"],
