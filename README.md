@@ -8,6 +8,7 @@ Key capabilities
 - Boolean mode (deductive, no hallucinations) and continuous mode (learnable with temperature)
 - Embedding‑space reasoning and gated multi‑hop composer (learns compositions)
 - Automatic predicate invention via RESCAL (no labels, no manual patterns)
+- **FB15k-237 benchmark**: RESCAL beats LibKGE reference (MRR 0.347 vs 0.304)
 - Sparse facts, AMP, batching, and a simple benchmark suite
 
 ## Requirements
@@ -95,7 +96,24 @@ python3 examples/predicate_invention_demo.py
 **Learn:** Automatically invent hidden predicates via RESCAL tensor factorization.
 **Use case:** Discover latent structure and missing relations in knowledge bases.
 
-### Benchmarks & Comparison
+### FB15k-237 Knowledge Graph Benchmark
+```bash
+python3 examples/fb15k237_benchmark.py                                  # Full training
+python3 examples/fb15k237_benchmark.py --epochs 2 --eval_interval 1     # Quick smoke test
+python3 examples/fb15k237_benchmark.py --eval_only                      # Evaluate checkpoint
+python3 examples/fb15k237_benchmark.py --resume                         # Resume training
+```
+**Standard KG link prediction benchmark** (14,541 entities, 237 relations, 310K triples).
+Auto-downloads dataset, trains RESCAL with 1vsAll scoring, evaluates with filtered MRR/Hits@K.
+
+| Metric | TensorLogic RESCAL | LibKGE RESCAL | DistMult | ComplEx | RotatE |
+|--------|-------------------|---------------|----------|---------|--------|
+| MRR    | **0.347**         | 0.304         | 0.241    | 0.247   | 0.338  |
+| H@1    | **0.258**         | 0.242         | 0.155    | 0.158   | 0.241  |
+| H@3    | **0.382**         | 0.331         | 0.263    | 0.275   | 0.375  |
+| H@10   | **0.524**         | 0.419         | 0.419    | 0.428   | 0.533  |
+
+### Internal Benchmarks & Comparison
 ```bash
 python3 examples/benchmark_suite.py
 ```
@@ -224,6 +242,14 @@ examples/       # Boolean / Embedding / Composer / Invention / Benchmarks
 ```
 
 ## Benchmarks
+
+**Standard KG benchmark** (FB15k-237):
+```bash
+python3 examples/fb15k237_benchmark.py
+```
+RESCAL achieves MRR 0.347, beating LibKGE reference (0.304) and exceeding RotatE (0.338).
+
+**Internal benchmark suite**:
 ```bash
 python3 examples/benchmark_suite.py
 ```

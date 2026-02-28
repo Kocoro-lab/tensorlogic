@@ -83,6 +83,7 @@ htmlcov/
 
 # Claude Code
 .claude/
+CLAUDE.md
 
 # Documentation builds
 docs/_build/
@@ -96,3 +97,6 @@ visualizations/**/.gitkeep
 # Input files
 input.txt
 .todos/
+
+# Downloaded datasets
+data/
